@@ -1,0 +1,18 @@
+package application.controller;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.input.MouseEvent;
+
+public class SecondController {
+
+    @FXML
+    private Button btn_back;
+    
+
+    @FXML
+    void back(MouseEvent event) {
+
+    }
+
+}

@@ -1,0 +1,11 @@
+package application.model;
+
+public class Ankieta {
+	
+	private int id;
+	private String name;
+	private String lastName;
+	private String mail;
+	private String phone;
+
+}

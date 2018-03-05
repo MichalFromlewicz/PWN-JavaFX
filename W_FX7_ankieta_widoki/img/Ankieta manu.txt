@@ -1,0 +1,9 @@
+Manu:
+Plik:
+- wyślij (wysyłka przez klienta maila)
+- zapisz do pliku 
+- wyczyść
+- wyjdź
+
+Pomoc:
+- Instukcja

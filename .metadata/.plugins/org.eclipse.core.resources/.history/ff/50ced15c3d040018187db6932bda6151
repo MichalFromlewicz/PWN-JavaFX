@@ -1,0 +1,18 @@
+package application.model;
+
+public class Ankieta {
+	
+	private int id;
+	private String name;
+	private String lastName;
+	private String mail;
+	private String phone;
+	private Boolean java;
+	private Boolean python;
+	private String other;
+	private String language;
+	private String course;
+	
+	
+
+}

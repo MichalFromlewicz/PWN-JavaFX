@@ -1,0 +1,349 @@
+package application.controller;
+
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Properties;
+
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import javax.swing.JFileChooser;
+
+import application.database.DBConnector;
+import application.model.Ankieta;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.input.MouseEvent;
+
+public class AnkietaController {
+	
+	// --- data to send mail
+	private static final String HOST = "smtp.gmail.com";
+	private static final int PORT = 465;
+	private static final String FROM = "fi3w32017@gmail.com";
+	private static final String PASS = "kurspwn2017";
+	private static final String SUBJECT = "PWN course form - summary";
+	
+	public ObservableList<String> courses;
+	
+	private DBConnector db;
+
+    @FXML
+    private MenuItem m_send;
+
+    @FXML
+    private MenuItem m_send_to_file;
+    
+    @FXML
+    private MenuItem m_save_to_dbase;
+
+    @FXML
+    private MenuItem m_clear;
+
+    @FXML
+    private MenuItem m_close;
+
+    @FXML
+    private MenuItem m_about;
+
+    @FXML
+    private TextField tf_name;
+
+    @FXML
+    private TextField tf_last_name;
+
+    @FXML
+    private TextField tf_mail;
+
+    @FXML
+    private TextField tf_phone;
+
+    @FXML
+    private CheckBox cb_java;
+
+    @FXML
+    private CheckBox cb_python;
+
+    @FXML
+    private CheckBox cb_other;
+
+    @FXML
+    private TextField tf_other;
+
+    @FXML
+    private RadioButton rb_basic;
+
+    @FXML
+    private ToggleGroup g1;
+
+    @FXML
+    private RadioButton rb_intermediate;
+
+    @FXML
+    private RadioButton rb_advanced;
+
+    @FXML
+    private Button bt_preview;
+
+    @FXML
+    private TextArea ta_preview;
+
+    @FXML
+    private ComboBox<String> cmb_courses;
+    
+    @FXML
+    void aboutAction(ActionEvent event) {
+    	Alert about = new Alert(AlertType.INFORMATION);
+    	about.setHeaderText("Instruction");
+    	about.setContentText("Instruction for the form ... ");
+    	about.setTitle("About");
+    	about.showAndWait();
+
+    }
+
+    @FXML
+    void clearAction(ActionEvent event) {
+        
+        tf_name.clear();
+        tf_last_name.clear();
+        tf_mail.clear();       
+        tf_phone.clear();
+        cb_java.setSelected(false);
+        cb_python.setSelected(false);
+        cb_other.setSelected(false);       
+        tf_other.clear();        
+        rb_intermediate.setSelected(true);        
+        ta_preview.clear();
+        cmb_courses.setValue(null);
+
+    }
+
+    @FXML
+    void closeAction(ActionEvent event) {
+    	System.exit(0);
+
+    }
+
+    @FXML
+    void preview(MouseEvent event) {
+    	if(isNotCompleted()){
+    		
+    		showAlertNotCompleted();
+    		
+    	} else {
+    		String previewForm = getFormData();
+    		ta_preview.setText(previewForm);
+    	}
+
+    }
+
+	private String getFormData() {
+		String name  = tf_name.getText();
+		String lastName = tf_last_name.getText();
+		String mail = tf_mail.getText();
+		String phone = tf_phone.getText();
+		String java="", python="", other = "";
+		
+		// CheckBoxs
+		if (cb_java.isSelected()) {
+			java = cb_java.getText();
+		}
+		if (cb_python.isSelected()) {
+			python = cb_python.getText();
+		}
+		if (cb_other.isSelected()) {
+			other = tf_other.getText();
+		}
+		
+		// radio buttons
+		String language = "";
+		if(rb_basic.isSelected()) {
+			language = rb_basic.getText();
+		}
+		if(rb_intermediate.isSelected()) {
+			language = rb_intermediate.getText();
+		}
+		if(rb_advanced.isSelected()) {
+			language = rb_advanced.getText();
+		}
+		
+		String combo = cmb_courses.getValue();
+		return "Contact: \n" + name + " " + lastName
+				+ "\n mail: "+mail + "\n phone: " + phone
+				+ "\n Pogramming languages: "+ (java.isEmpty() ? "":"\n "+ java)
+				+ (python.isEmpty() ? "":"\n " + python)
+				+ (other.isEmpty() ? "":"\n" + other)
+				+ "\n English level: "+ "\n" + language
+				+ "\n Course: " + "\n" +combo;
+	}
+	
+	private Ankieta mapToAnkieta() {
+		String name  = tf_name.getText();
+		String lastName = tf_last_name.getText();
+		String mail = tf_mail.getText();
+		String phone = tf_phone.getText();
+		String java="", python="", other = "";
+		
+		// CheckBoxs
+		if (cb_java.isSelected()) {
+			java = cb_java.getText();
+		}
+		if (cb_python.isSelected()) {
+			python = cb_python.getText();
+		}
+		if (cb_other.isSelected()) {
+			other = tf_other.getText();
+		}
+		
+		// radio buttons
+		String language = "";
+		if(rb_basic.isSelected()) {
+			language = rb_basic.getText();
+		}
+		if(rb_intermediate.isSelected()) {
+			language = rb_intermediate.getText();
+		}
+		if(rb_advanced.isSelected()) {
+			language = rb_advanced.getText();
+		}
+		
+		String course = cmb_courses.getValue();
+//		return "Contact: \n" + name + " " + lastName
+//				+ "\n mail: "+mail + "\n phone: " + phone
+//				+ "\n Pogramming languages: "+ (java.isEmpty() ? "":"\n "+ java)
+//				+ (python.isEmpty() ? "":"\n " + python)
+//				+ (other.isEmpty() ? "":"\n" + other)
+//				+ "\n English level: "+ "\n" + language
+//				+ "\n Course: " + "\n" +combo;
+				
+		Ankieta ankieta = new Ankieta(name, lastName, mail, phone, cb_java.isSelected(), cb_python.isSelected(),
+				other, language, course);
+		return ankieta;
+	}
+
+	private void showAlertNotCompleted() {
+		Alert alert = new Alert(AlertType.WARNING);
+		alert.setHeaderText("Error");
+		alert.setContentText("Information view error");
+		alert.setTitle("Fullfil all items!");
+		alert.showAndWait();
+	}
+
+	private boolean isNotCompleted() {
+		return "".equals(tf_name.getText()) || "".equals(tf_last_name.getText())
+    			|| "".equals(tf_mail.getText()) || "".equals(tf_phone.getText()) || cmb_courses.getValue()==null;
+	}
+
+    @FXML
+    void sendAction(ActionEvent event) throws MessagingException {
+    	if(isNotCompleted()) {
+    		showAlertNotCompleted();    		
+    	} else {
+    		String formData = getFormData();
+    		
+    		Properties props = new Properties();
+    		props.put("mail.transport.protocol","smtps");
+    		props.put("mail.smpts.auth", true);
+    		
+    		//inicjalizacja sesji
+    		Session mailSession = Session.getDefaultInstance(props);
+    		
+    		// Tworzenie wiadomoœci
+    		MimeMessage message = new MimeMessage(mailSession);
+    		message.setSubject(SUBJECT);
+    		message.setContent(formData, "text/plain; charset=UTF-8");
+    		
+    		String to = tf_mail.getText();
+    		message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+    		message.addRecipient(Message.RecipientType.CC, new InternetAddress("michal.fromlewicz@prefera.pl"));
+    		
+    		//ustanowienie po³¹czenia
+    		Transport transport = mailSession.getTransport();
+    		transport.connect(HOST,PORT,FROM,PASS);
+    		
+    		// wysy³anie wiadomoœci
+    		transport.sendMessage(message, message.getAllRecipients());
+    		transport.close();
+    		
+    		
+    		
+    		
+    		
+    	}
+
+    }
+    
+    @FXML
+    void saveToDataAction(ActionEvent event) {
+    	if(isNotCompleted()) {
+    		showAlertNotCompleted();
+    	} else {
+    		
+    		try {
+				Connection connection = db.connection();
+				PreparedStatement ps = connection.prepareStatement("INSTERT INTO ankieta(name, last_name, mail, phone, java, python, other, language, course)"
+				+ "VALUES (?,?,?,?,?,?,?,?,?)");
+				
+			} catch (SQLException e) {
+				
+				e.printStackTrace();
+			}
+    		
+    	}
+    	
+
+    }
+
+    @FXML
+    void sendToFileAction(ActionEvent event) throws FileNotFoundException {
+    	if(isNotCompleted()) {
+    		showAlertNotCompleted();
+    	} else {
+    		JFileChooser fc = new JFileChooser();
+    		fc.showSaveDialog(null);
+    		String choice = fc.getSelectedFile().getPath();
+    		
+    		PrintWriter zapis = new PrintWriter(choice);
+    		zapis.println(getFormData());
+    		zapis.close();
+    		
+    	}
+
+    }
+    
+    @FXML
+    void otherAction(MouseEvent event) {
+    	if(cb_other.isSelected()) {
+    		tf_other.setDisable(false);   		
+    	} else {
+    		tf_other.clear();
+    		tf_other.setDisable(true);
+    	}
+
+    }
+    
+    public void initialize() {
+    	courses = FXCollections.observableArrayList("Back-end Developer", "Front-end Developer");
+    	cmb_courses.setItems(courses);
+    	db = new DBConnector();
+	}
+
+}

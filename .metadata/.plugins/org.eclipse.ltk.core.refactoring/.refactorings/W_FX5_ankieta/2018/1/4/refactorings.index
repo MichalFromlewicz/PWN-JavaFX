@@ -1,0 +1,7 @@
+1517133073180	Delete element
+1517139787899	Rename type 'Main'
+1517143921487	Extract method 'isCompleted'
+1517144005176	Extract method 'showAlertNotCompleted'
+1517144057303	Rename method 'isCompleted'
+1517144229043	Extract local variable 'previewForm'
+1517144347362	Extract method 'getFormData'

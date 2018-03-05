@@ -1,0 +1,227 @@
+package application.controller;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import java.sql.Statement;
+
+import application.database.DBConnector;
+import application.model.Ankieta;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+
+public class TableController {
+
+	@FXML
+	private TableView<Ankieta> table_view;
+
+	@FXML
+	private TableColumn<Ankieta, Integer> col_id;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_name;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_lastname;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_mail;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_phone;
+
+	@FXML
+	private TableColumn<Ankieta, Boolean> col_java;
+
+	@FXML
+	private TableColumn<Ankieta, Boolean> col_python;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_other;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_language;
+
+	@FXML
+	private TableColumn<Ankieta, String> col_course;
+
+	@FXML
+	private Button btn_select;
+
+	@FXML
+	private TextField tf_filtr_mail;
+
+	@FXML
+	private ComboBox<String> cmb_filtr_java;
+
+	@FXML
+	private ComboBox<String> cmb_filtr_language;
+
+	@FXML
+	private Button btn_filtr;
+
+	// obiekt po³¹czneia z baza danych
+	private DBConnector db;
+
+	// obiekt do przechowywania listy elementów z bazy danych typu Anieta
+	private ObservableList<Ankieta> data = FXCollections.observableArrayList();
+
+	ObservableList<String> javaValue = FXCollections.observableArrayList("Select", "Yes", "No");
+
+	ObservableList<String> langValue = FXCollections.observableArrayList("Select", "Basic", "Intermediate", "Advanced");
+
+	@FXML
+	void doFiltr(MouseEvent event) {
+
+		Connection connection = null;
+		try {
+			connection = db.connection();
+
+			StringBuilder sql = new StringBuilder("SELECT * FROM ankieta");
+			if (isFiltrExist()) {
+
+				sql.append(" WHERE ");
+				boolean isValue = false;
+
+				if (isFiltrMailExist()) {
+					sql.append(" mail = ?");
+					isValue = true;
+				}
+				if (isFiltrJavaExist()) {
+					if (isValue) {
+						sql.append(" AND");
+					}
+
+					sql.append(" java =?");
+					isValue = true;
+				}
+				if (isFiltrLanguageExist()) {
+					if (isValue) {
+						sql.append(" AND");
+					}
+
+					sql.append(" language =?");
+
+				}
+
+				System.out.println("FILTR SQL: " + sql);
+			}
+			PreparedStatement ps = connection.prepareStatement(sql.toString());
+			if (isFiltrExist()) {
+				int i=1;
+				if(isFiltrMailExist()) {
+					
+					ps.setString(i, tf_filtr_mail.getText());
+					i++;
+				}
+				
+				if(isFiltrJavaExist()) {
+					
+					ps.setBoolean(i, "Yes".equalsIgnoreCase(cmb_filtr_java.getValue()));
+					i++;
+					
+				}
+				if(isFiltrLanguageExist()) {
+					ps.setString(i, cmb_filtr_language.getValue());
+				}
+			}
+			
+			ResultSet rs = ps.executeQuery();
+			setTableValue(rs);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+	}
+
+	private boolean isFiltrExist() {
+		return isFiltrMailExist() || isFiltrJavaExist() || isFiltrLanguageExist();
+	}
+
+	private boolean isFiltrMailExist() {
+		return !tf_filtr_mail.getText().isEmpty();
+	}
+
+	private boolean isFiltrJavaExist() {
+		return !"Select".equalsIgnoreCase(cmb_filtr_java.getValue());
+	}
+
+	private boolean isFiltrLanguageExist() {
+		return !"Select".equalsIgnoreCase(cmb_filtr_language.getValue());
+	}
+
+	@FXML
+	void onSelect(MouseEvent event) throws SQLException {
+
+		Connection connection = null;
+		try {
+			connection = db.connection();
+			Statement stmt = connection.createStatement();
+			ResultSet rs = stmt.executeQuery("SELECT * FROM ankieta;");
+			setTableValue(rs);
+			
+		} finally {
+			if (connection != null) {
+				connection.close();
+			}
+		}
+	}
+
+	private void setTableValue(ResultSet rs) throws SQLException {
+		data.clear();
+		while (rs.next()) {
+			data.add(new Ankieta(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
+					rs.getBoolean(6), rs.getBoolean(7), rs.getString(8), rs.getString(9), rs.getString(10)));
+		}
+		
+		table_view.setItems(null);
+		table_view.setItems(data);
+	}
+
+	public void initialize() {
+		db = new DBConnector();
+		
+		cmb_filtr_java.setItems(javaValue);
+		cmb_filtr_java.setValue("Select");
+		
+		cmb_filtr_language.setItems(langValue);
+		cmb_filtr_language.setValue("Select");
+		
+		setCellValue();
+
+	}
+
+	private void setCellValue() {
+		col_id.setCellValueFactory(new PropertyValueFactory<Ankieta, Integer>("id"));
+		col_name.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("name"));
+		col_lastname.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("lastName"));
+		col_mail.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("mail"));
+		col_phone.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("phone"));
+		col_java.setCellValueFactory(new PropertyValueFactory<Ankieta, Boolean>("java"));
+		col_python.setCellValueFactory(new PropertyValueFactory<Ankieta, Boolean>("python"));
+		col_other.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("other"));
+		col_language.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("language"));
+		col_course.setCellValueFactory(new PropertyValueFactory<Ankieta, String>("course"));
+	}
+
+}
